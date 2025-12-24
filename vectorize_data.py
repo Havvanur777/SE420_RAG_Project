@@ -26,8 +26,10 @@ def create_db():
         content = (
             f"Code: {course.get('course_code', '')}\n"
             f"Name: {course.get('course_name', '')}\n"
+            f"Semester: {course.get('semester', '')}\n"
             f"Dept: {course.get('department', '')}\n"
             f"Type: {course.get('type', '')}\n"
+            f"Prerequisites: {course.get('prerequisites', '')}\n"
             f"ECTS: {course.get('ects', '')}\n"
             f"Desc: {course.get('description', '')}\n"
             f"Topics: {course.get('weekly_topics', '')}"

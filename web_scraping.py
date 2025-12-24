@@ -131,7 +131,11 @@ def scrape_pool_page(pool_url, target_id_str, dept_name, source_code, label_type
                             
                             if p_link:
                                 p_url = p_link['href']
-                                p_details = get_course_details(p_url)
+                                fetched_details = get_course_details(p_url)
+                                p_details["objectives"] = fetched_details["objectives"]
+                                p_details["description"] = fetched_details["description"] + f" [Source: Pool {target_id_str}]"
+                                p_details["prerequisites"] = fetched_details["prerequisites"]
+                                p_details["weekly_topics"] = fetched_details["weekly_topics"]
 
                             pool_obj = {
                                 "department": dept_name,
@@ -148,7 +152,7 @@ def scrape_pool_page(pool_url, target_id_str, dept_name, source_code, label_type
                                 "url": p_url
                             }
                             all_courses_data.append(pool_obj)
-                            print(f"    -> Added: {p_code} | {label_type}")
+                            print(f"    -> Added: {p_code} | {label_type} (Pool {target_id_str})")
 
                         except: continue
     except Exception as e:
@@ -168,17 +172,21 @@ def scrape_department(dept):
         
         for link in all_links:
             href = link['href']
-            
             match = lang_pattern.search(href)
             if match:
                 lang_code = f"{match.group(1).upper()} {match.group(2)}"
-                unique_key = f"{dept['name']}_{lang_code}"
                 
                 lang_url = href
                 if not lang_url.startswith("http"):
                     lang_url = "https://ects.ieu.edu.tr/new/" + lang_url
                 
                 details = get_course_details(lang_url)
+                
+                extra_note = " This course is available for selection as a Second Foreign Language (SFL) option."
+                if details["description"] == "Not specified":
+                    details["description"] = extra_note
+                else:
+                    details["description"] += extra_note
                 
                 lang_obj = {
                     "department": dept['name'],
@@ -294,6 +302,8 @@ def scrape_department(dept):
                         if final_type == "Mandatory":
                              if link_tag: details_data = get_course_details(detail_url)
                              if hover_text: details_data["description"] += f" [Note: {hover_text}]"
+                             if "SFL" in course_code:
+                                 details_data["description"] += " Second Foreign Language course. See available language options."
 
                         elif final_type == "Elective - Placeholder":
                              details_data["description"] = "Check the Elective Tables below for options."

@@ -14,52 +14,52 @@ if "OPENAI_API_KEY" not in os.environ:
 
 categories = {
     "A) Single-Department Questions": [
-        "What are the mandatory courses offered in the 1st semester of Software Engineering?",
-        "What is the main objective of the course SE 302 (Software Architecture)?",
-        "List the weekly topics for the CE 216 (Logic Circuits Design) course in Computer Engineering.",
-        "How many ECTS credits is the IE 301 (Operations Research I) course in Industrial Engineering?",
-        "What are the prerequisites for the course EEE 301 (Linear Control Systems)?",
+        "What are the mandatory courses offered in the 1st year fall semester of Software Engineering?",
+        "What is the main objective of the course SE 311 (Software Architecture)?",
+        "What are the weekly topics for the course code CE 323?",
+        "How many ECTS credits is the IE 326 (Inventory Planning) course in Industrial Engineering?",
+        "What are the prerequisites for the course EEE 208 (Electric Circuit Analysis II)?",
         "Which physics courses are required for the Computer Engineering department?",
         "Does the Software Engineering department offer a course on 'Mobile Application Development'?",
-        "What is the description of the senior project course (SE 499) in Software Engineering?",
-        "In which semester is the MATH 101 (Calculus I) course taken by Industrial Engineering students?",
-        "What are the mandatory 'Second Foreign Language' options mentioned for Electrical and Electronics Engineering?"
+        "What is the description of the senior project course (FENG 498) in Software Engineering?",
+        "In which semester is the MATH 153 (Calculus I) course taken by Industrial Engineering students?",
+        "What are the POOL 003 courses mentioned for Electrical and Electronics Engineering?"
     ],
     "B) Topic-Based Search": [
         "Which engineering departments offer courses related to 'Artificial Intelligence' or 'Machine Learning'?",
         "Find courses across all departments that cover 'Probability' and 'Statistics'.",
-        "Which courses include 'Python' programming in their weekly topics or description?",
+        "Which courses include 'Java' programming in their weekly topics or description?",
         "Are there any courses related to 'Signal Processing' in the Faculty of Engineering?",
         "Which departments require an 'Occupational Health and Safety' course?",
         "Find courses that focus on 'Database Management' systems.",
         "Which courses cover 'Optimization' techniques?",
         "Are there any courses regarding 'Computer Networks' or 'Network Security'?",
-        "Which courses discuss 'Ethics' in engineering?",
-        "Find courses that involve 'Physics' or 'Mechanics' content."
+        "Which courses discuss 'Economics'?",
+        "Which courses cover topics related to 'Statics' ?"
     ],
     "C) Cross-Department Comparison": [
-        "What are the common freshman (1st year) courses between Software Engineering and Industrial Engineering?",
-        "Compare the physics requirements for Computer Engineering and Electrical-Electronics Engineering?",
+        "What are the common 1st yearcourses between Software Engineering and Industrial Engineering?",
+        "Compare the electric requirements for Computer Engineering and Electrical-Electronics Engineering?",
         "Which department focuses more on 'Hardware' and 'Circuits': Software Engineering or Electrical-Electronics Engineering?",
-        "Do both Computer Engineering and Software Engineering students take the 'Formal Languages and Automata' course?",
+        "Do both Computer Engineering and Software Engineering students take the 'Introduction to Programming II' course?",
         "Is the internship (Summer Practice) duration or ECTS the same for all engineering departments?",
-        "Which department emphasizes 'Supply Chain Management' more: Industrial Engineering or Computer Engineering?",
+        "Which department emphasizes 'Data Science' more: Industrial Engineering or Computer Engineering?",
         "Are the 'Calculus' (Math) courses the same for all four engineering departments?",
         "List the programming-focused courses in Software Engineering versus Industrial Engineering.",
         "Do all departments take the same 'Academic Skills in English' (ENG 101/102) courses?",
-        "Is there a difference in the ECTS value of the Senior Project between SE and EEE?"
+        "Is there a difference in the ECTS value of the Multidisciplinary Engineering Projects between SE and EEE?"
     ],
     "D) Quantitative / Counting Questions": [
         "How many ECTS credits is the 'Introduction to Programming' course?",
-        "How many elective courses must a Software Engineering student take in the 8th semester?",
+        "How many elective courses must a Software Engineering student take in the 4. Year Fall Semester?",
         "What is the total ECTS value of the first semester for Computer Engineering?",
         "How many physics courses are mandatory in the Electrical-Electronics Engineering curriculum?",
         "What is the semester with the highest number of mandatory courses in Industrial Engineering?",
-        "How many 'University Elective' courses are required in the Software Engineering curriculum?",
+        "How many 'Elective' courses are required in the Software Engineering curriculum?",
         "What is the total duration (in weeks) of the syllabus for SE 302?",
-        "How many different 'Second Foreign Language' courses are listed in the database?",
-        "What is the credit load (Local Credit) of the MATH 101 course?",
-        "How many internship (summer practice) courses are there in the SE curriculum?"
+        "How many different 'SFL' courses are listed in the database?",
+        "What is the total ECTS of the courses that have code as MATH in Industrial Engineering?",
+        "How many internship (summer practice) courses are there in the Software Engineering curriculum?"
     ],
     "E) Hallucination / Trap Questions": [
         "Does the Software Engineering department offer a course on 'Quantum Thermodynamics'?",
@@ -91,22 +91,44 @@ def run_tests():
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vector_store = Chroma(persist_directory="./ieu_course_db", embedding_function=embeddings)
-    
+
     retriever = vector_store.as_retriever(
         search_type="similarity",
-        search_kwargs={'k': 100}
+        search_kwargs={'k': 150}
     )
     
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    template = """You are an academic assistant for Izmir University of Economics.
+    template = """You are an expert academic advisor for Izmir University of Economics.
+    You have access to a comprehensive list of course data below.
     
-    Answer the question based strictly on the provided Context.
+    Your goal is to answer the student's question by analyzing the provided Context.
+    
+    INSTRUCTIONS FOR DIFFERENT QUESTION TYPES:
+    
+    1. SPECIFIC COURSE DETAILS (e.g., "Objective of SE 311"):
+       - Search specifically for the block starting with "Code: SE 311".
+       - Do not confuse it with other courses that list SE 311 as a prerequisite.
+       - Extract the requested info (Objective, ECTS, etc.) accurately.
 
-    1. If the user asks for a specific Semester, check the 'Semester' field in the text. Only list courses that match.
-    2. If the user asks for Prerequisites, check the 'Prerequisites' field for that specific course.
-    3. If the user asks about a Topic, check descriptions and topics.
-    4. If the info is not in the context, say "I don't have information about that."
+    2. SEMESTER LISTING (e.g., "1st Semester courses"):
+       - Scan all courses in the context.
+       - Identify courses where the 'Semester' field explicitly matches the requested period (e.g., "1. Semester", "1. Year Fall").
+       - List all matching courses found.
+
+    3. COUNTING/QUANTITATIVE (e.g., "How many elective courses..."):
+       - Manually count the entries in the context that meet the criteria.
+       - Provide the final count and list a few examples.
+
+    4. COMPARISON (e.g., "Compare Math requirements of CE vs EEE"):
+       - Find the math courses for both departments in the context.
+       - Analyze and explain the differences or similarities.
+
+    5. TOPIC SEARCH (e.g., "Courses about Mechanics"):
+       - Scan descriptions and topics for the keyword.
+       - List the courses that contain this content.
+
+    If you absolutely cannot find the answer in the context after a thorough search, state "I don't have information about that."
 
     Context:
     {context}

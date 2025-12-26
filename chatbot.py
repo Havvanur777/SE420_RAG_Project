@@ -20,19 +20,41 @@ def start_chat():
     
     retriever = vector_store.as_retriever(
         search_type="similarity",
-        search_kwargs={'k': 100}
+        search_kwargs={'k': 150}
     )
     
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    template = """You are an academic assistant for Izmir University of Economics.
+    template = """You are an expert academic advisor for Izmir University of Economics.
+    You have access to a comprehensive list of course data below.
     
-    Answer the question based strictly on the provided Context.
+    Your goal is to answer the student's question by analyzing the provided Context.
+    
+    INSTRUCTIONS FOR DIFFERENT QUESTION TYPES:
+    
+    1. SPECIFIC COURSE DETAILS (e.g., "Objective of SE 311"):
+       - Search specifically for the block starting with "Code: SE 311".
+       - Do not confuse it with other courses that list SE 311 as a prerequisite.
+       - Extract the requested info (Objective, ECTS, etc.) accurately.
 
-    1. If the user asks for a specific Semester, check the 'Semester' field in the text. Only list courses that match.
-    2. If the user asks for Prerequisites, check the 'Prerequisites' field for that specific course.
-    3. If the user asks about a Topic, check descriptions and topics.
-    4. If the info is not in the context, say "I don't have information about that."
+    2. SEMESTER LISTING (e.g., "1st Semester courses"):
+       - Scan all courses in the context.
+       - Identify courses where the 'Semester' field explicitly matches the requested period (e.g., "1. Semester", "1. Year Fall").
+       - List all matching courses found.
+
+    3. COUNTING/QUANTITATIVE (e.g., "How many elective courses..."):
+       - Manually count the entries in the context that meet the criteria.
+       - Provide the final count and list a few examples.
+
+    4. COMPARISON (e.g., "Compare Math requirements of CE vs EEE"):
+       - Find the math courses for both departments in the context.
+       - Analyze and explain the differences or similarities.
+
+    5. TOPIC SEARCH (e.g., "Courses about Mechanics"):
+       - Scan descriptions and topics for the keyword.
+       - List the courses that contain this content.
+
+    If you absolutely cannot find the answer in the context after a thorough search, state "I don't have information about that."
 
     Context:
     {context}
@@ -44,7 +66,7 @@ def start_chat():
     prompt = PromptTemplate.from_template(template)
 
     def format_docs(docs):
-        return "\n--- ENTRY ---\n".join(doc.page_content for doc in docs)
+        return "\n--- COURSE ENTRY ---\n".join(doc.page_content for doc in docs)
 
     rag_chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
